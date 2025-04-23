@@ -49,8 +49,16 @@ if ($text == "") {
         $updateBalanceStmt = $pdo->prepare("UPDATE users SET balance = ? WHERE referral_code = ?");
         $updateBalanceStmt->execute([$newBalance, $referralCode]);
 
+        // Log the referral code, phone number, and timestamp in the referrals table
+        $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
+        $logReferralStmt->execute([$phoneNumber, $referralCode]);
+
         $response = "END Referral code accepted. The owner has been credited with KES 100.";
     } else {
+        // Log the failed referral attempt in the referrals table
+        $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
+        $logReferralStmt->execute([$phoneNumber, $referralCode]);
+
         $response = "END Invalid referral code.";
     }
 } elseif ($text == "2") {
