@@ -122,15 +122,29 @@ if ($text == "") {
         if ($balance >= $amount) {
             // Deduct balance
             $newBalance = $balance - $amount;
-            $stmt = $pdo->prepare("UPDATE users SET balance = ? WHERE phone_number = ?");
-            $stmt->execute([$newBalance, $phoneNumber]);
+            $updateStmt = $pdo->prepare("UPDATE users SET balance = ? WHERE phone_number = ?");
+            $updateStmt->execute([$newBalance, $phoneNumber]);
 
-            // Integrate MPESA withdrawal logic here
+            // Log successful withdrawal in the withdrawals table
+            $logWithdrawalStmt = $pdo->prepare("INSERT INTO withdrawals (phone_number, amount, status) VALUES (?, ?, ?)");
+            $logWithdrawalStmt->execute([$phoneNumber, $amount, 'successful']);
+
+            // Response to user
             $response = "END Withdrawal of KES $amount to MPESA is being processed.";
         } else {
+            // Log failed withdrawal in the withdrawals table
+            $logWithdrawalStmt = $pdo->prepare("INSERT INTO withdrawals (phone_number, amount, status) VALUES (?, ?, ?)");
+            $logWithdrawalStmt->execute([$phoneNumber, $amount, 'failed']);
+
+            // Response to user
             $response = "END Insufficient balance.";
         }
     } else {
+        // Log failed withdrawal due to invalid account
+        $logWithdrawalStmt = $pdo->prepare("INSERT INTO withdrawals (phone_number, amount, status) VALUES (?, ?, ?)");
+        $logWithdrawalStmt->execute([$phoneNumber, $amount, 'failed']);
+
+        // Response to user
         $response = "END Account not found.";
     }
 } else {
