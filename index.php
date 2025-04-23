@@ -44,22 +44,40 @@ if ($text == "") {
     $result = $stmt->fetch();
 
     if ($result) {
-        // Add 100 to the owner's balance
-        $newBalance = $result["balance"] + 100;
-        $updateBalanceStmt = $pdo->prepare("UPDATE users SET balance = ? WHERE referral_code = ?");
-        $updateBalanceStmt->execute([$newBalance, $referralCode]);
+        // Check if the phone number already exists in the referrals table
+        $checkReferralStmt = $pdo->prepare("SELECT id FROM referrals WHERE phone_number = ?");
+        $checkReferralStmt->execute([$phoneNumber]);
+        $existingReferral = $checkReferralStmt->fetch();
 
-        // Log the referral code, phone number, and timestamp in the referrals table
-        $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
-        $logReferralStmt->execute([$phoneNumber, $referralCode]);
+        if ($existingReferral) {
+            // Phone number is already registered in referrals table
+            $response = "END You have already entered a referral code.";
+        } else {
+            // Add 100 to the owner's balance
+            $newBalance = $result["balance"] + 100;
+            $updateBalanceStmt = $pdo->prepare("UPDATE users SET balance = ? WHERE referral_code = ?");
+            $updateBalanceStmt->execute([$newBalance, $referralCode]);
 
-        $response = "END Referral code accepted. The owner has been credited with KES 100.";
+            // Log the referral code, phone number, and timestamp in the referrals table
+            $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
+            $logReferralStmt->execute([$phoneNumber, $referralCode]);
+
+            $response = "END Referral code accepted. The owner has been credited with KES 100.";
+        }
     } else {
         // Log the failed referral attempt in the referrals table
-        $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
-        $logReferralStmt->execute([$phoneNumber, $referralCode]);
+        $checkReferralStmt = $pdo->prepare("SELECT id FROM referrals WHERE phone_number = ?");
+        $checkReferralStmt->execute([$phoneNumber]);
+        $existingReferral = $checkReferralStmt->fetch();
 
-        $response = "END Invalid referral code.";
+        if ($existingReferral) {
+            $response = "END You have already entered a referral code.";
+        } else {
+            $logReferralStmt = $pdo->prepare("INSERT INTO referrals (phone_number, referral_code) VALUES (?, ?)");
+            $logReferralStmt->execute([$phoneNumber, $referralCode]);
+
+            $response = "END Invalid referral code.";
+        }
     }
 } elseif ($text == "2") {
     // Register for Referral
