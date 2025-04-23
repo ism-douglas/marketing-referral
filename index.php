@@ -3,11 +3,10 @@
 header('Content-type: text/plain');
 
 // Get inputs from USSD gateway
-$sesssionid = $_POST['sessionid'];//Get the session unique id
-$serviceCode = $_POST['serviceCode'];//Get the service code from provider
-$phoneNumber = ltrim($_POST['phoneNumber']);//Get the phone number
-$text = $_POST['text'];//Default text variable is usually empty
-
+$sesssionid = $_POST['sessionid']; // Get the session unique id
+$serviceCode = $_POST['serviceCode']; // Get the service code from provider
+$phoneNumber = ltrim($_POST['phoneNumber']); // Get the phone number
+$text = $_POST['text']; // Default text variable is usually empty
 
 // Database connection using PDO
 try {
@@ -52,23 +51,34 @@ if ($text == "") {
     }
 } elseif ($text == "2") {
     // Register for Referral
-    // Insert user into the database without a referral code first
-    $stmt = $pdo->prepare("INSERT INTO users (phone_number) VALUES (?)");
-    if ($stmt->execute([$phoneNumber])) {
-        // Retrieve the last inserted ID
-        $lastInsertedId = $pdo->lastInsertId();
 
-        // Generate a unique referral code using the last inserted ID
-        $referralCode = "A" . str_pad($lastInsertedId, 4, "0", STR_PAD_LEFT); // Example: A001
+    // Check if user is already registered
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE phone_number = ?");
+    $stmt->execute([$phoneNumber]);
+    $existingUser = $stmt->fetch();
 
-        // Update the user record with the generated referral code
-        $updateStmt = $pdo->prepare("UPDATE users SET referral_code = ? WHERE id = ?");
-        $updateStmt->execute([$referralCode, $lastInsertedId]);
-
-        // Send success response
-        $response = "END Registration successful! Your referral code is $referralCode.";
+    if ($existingUser) {
+        // User is already registered
+        $response = "END You are already registered.";
     } else {
-        $response = "END Registration failed. Please try again.";
+        // Register new user
+        $stmt = $pdo->prepare("INSERT INTO users (phone_number) VALUES (?)");
+        if ($stmt->execute([$phoneNumber])) {
+            // Retrieve the last inserted ID
+            $lastInsertedId = $pdo->lastInsertId();
+
+            // Generate a unique referral code using the last inserted ID
+            $referralCode = "A" . str_pad($lastInsertedId, 3, "0", STR_PAD_LEFT); // Example: A001
+
+            // Update the user record with the generated referral code
+            $updateStmt = $pdo->prepare("UPDATE users SET referral_code = ? WHERE id = ?");
+            $updateStmt->execute([$referralCode, $lastInsertedId]);
+
+            // Send success response
+            $response = "END Registration successful! Your referral code is $referralCode.";
+        } else {
+            $response = "END Registration failed. Please try again.";
+        }
     }
 } elseif ($text == "3") {
     // Check Account Balance
