@@ -28,7 +28,7 @@ if ($text == "") {
     // Initial menu
     $response  = "CON Welcome to our USSD App\n";
     $response .= "1. Input Referral Code\n";
-    $response .= "2. Register for Referral\n";
+    $response .= "2. Join Referral Program\n";
     $response .= "3. Check Account Balance\n";
     $response .= "4. Withdraw to MPESA";
 } elseif ($text == "1") {
@@ -39,13 +39,17 @@ if ($text == "") {
     $referralCode = $userResponse;
 
     // Validate referral code using prepared statements
-    $stmt = $pdo->prepare("SELECT phone_number FROM users WHERE referral_code = ?");
+    $stmt = $pdo->prepare("SELECT phone_number, balance FROM users WHERE referral_code = ?");
     $stmt->execute([$referralCode]);
     $result = $stmt->fetch();
 
     if ($result) {
-        $response = "END Referral code accepted. Thank you!";
-        // Update referrer balance here if needed
+        // Add 100 to the owner's balance
+        $newBalance = $result["balance"] + 100;
+        $updateBalanceStmt = $pdo->prepare("UPDATE users SET balance = ? WHERE referral_code = ?");
+        $updateBalanceStmt->execute([$newBalance, $referralCode]);
+
+        $response = "END Referral code accepted. The owner has been credited with KES 100.";
     } else {
         $response = "END Invalid referral code.";
     }
