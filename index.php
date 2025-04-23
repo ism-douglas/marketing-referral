@@ -59,7 +59,7 @@ if ($text == "") {
         $lastInsertedId = $pdo->lastInsertId();
 
         // Generate a unique referral code using the last inserted ID
-        $referralCode = "A" . str_pad($lastInsertedId, 5, "0", STR_PAD_LEFT); // Example: REF00001
+        $referralCode = "A" . str_pad($lastInsertedId, 4, "0", STR_PAD_LEFT); // Example: A001
 
         // Update the user record with the generated referral code
         $updateStmt = $pdo->prepare("UPDATE users SET referral_code = ? WHERE id = ?");
